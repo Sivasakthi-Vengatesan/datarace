@@ -19,6 +19,69 @@ DataRace bridges this gap by:
 
 ---
 
+## 📐 System Architecture & Workflow
+
+```mermaid
+flowchart TD
+    subgraph Tracing["1. Non-Invasive Tracing"]
+        APP["Application Tests / Workload"] --> TRACER["SQL Tracer & Interceptor"]
+        TRACER --> OPS["Extracted Operation Log<br/>[R(x), W(x), LOCK, COMMIT]"]
+    end
+
+    subgraph Analysis["2. Dependency & Graph Analysis"]
+        OPS --> DSG["Direct Serialization Graph (DSG)"]
+        DSG --> ADYA["Adya Anomaly Classifier<br/>(G0, G1c, G2, P3, Deadlock)"]
+    end
+
+    subgraph DPOR["3. DPOR Schedule Generation"]
+        ADYA --> SCHEDULER["Conflict-Directed DPOR"]
+        SCHEDULER --> EXPLORE["Exploration Tree<br/>(Bound: k ≤ 2 context switches)"]
+        EXPLORE --> CANDIDATES["Prioritized Interleaving Schedules"]
+    end
+
+    subgraph Replay["4. Deterministic Replay Engine"]
+        CANDIDATES --> BARRIER["Multi-Thread Barrier Replay"]
+        BARRIER --> DB[("Database Sandbox (SQLite/PG)")]
+        DB --> INV_CHECK["Domain Invariant Evaluator"]
+    end
+
+    subgraph Minimization["5. Delta Debugging (ddmin) & Reporting"]
+        INV_CHECK -- "Invariant Broken" --> REDUCER["Delta Debugger (ddmin)"]
+        REDUCER --> MIN_TRACE["Minimal Reproducing Trace<br/>(2–4 operations)"]
+        MIN_TRACE --> CLI["CLI Terminal Explorer"]
+        MIN_TRACE --> UI["Win95 Retro Workbench UI"]
+    end
+
+    style Tracing fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Analysis fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style DPOR fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Replay fill:#1e1e2e,stroke:#eba0ac,stroke-width:2px,color:#cdd6f4
+    style Minimization fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+```
+
+### Concurrency Interleaving & Anomaly Sequence
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant T1 as Transaction 1 (Thread A)
+    participant DB as Shared Database
+    participant T2 as Transaction 2 (Thread B)
+
+    Note over T1, T2: Initial Balance: $100 (x = 100)
+    T1->>DB: READ(x) -> 100
+    T2->>DB: READ(x) -> 100
+    Note over T1: Computes x - 40 = 60
+    T1->>DB: WRITE(x, 60)
+    T1->>DB: COMMIT
+    Note over T2: Computes x - 50 = 50 (based on stale read!)
+    T2->>DB: WRITE(x, 50)
+    T2->>DB: COMMIT
+    Note over DB: Final Balance: $50 (Expected: $10) — G0 Lost Update Anomaly!
+```
+
+---
+
 ## 🚀 Quick Start
 
 ### 1. Run Python Concurrency Benchmark Suite
