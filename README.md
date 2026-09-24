@@ -1,6 +1,20 @@
 # DataRace — Automated Database Concurrency Bug Discovery & Minimal Reproduction Engine
 
-> **A Serious Systems Engineering Project in Database Concurrency, Dynamic Partial-Order Reduction (DPOR), and Minimal Counterexample Reduction.**
+<div align="center">
+
+[![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Tests Status](https://img.shields.io/badge/tests-passing-brightgreen.svg)](tests/)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-black?logo=vercel)](https://datarace-liard.vercel.app)
+[![UI](https://img.shields.io/badge/UI-Win95%20Retro%20Workbench-teal.svg)](ui/)
+
+<p align="center">
+  <strong>Automated detection, deterministic replay, and delta-debugging reduction of application-level SQL race conditions and serializability violations.</strong>
+</p>
+
+[**Explore Live Web UI**](https://datarace-liard.vercel.app) • [**System Architecture**](#-system-architecture--workflow) • [**Quick Start**](#-quick-start) • [**Benchmarks**](#-canonical-benchmark-suite-10-real-world-cases) • [**Contributing**](CONTRIBUTING.md)
+
+</div>
 
 ---
 
@@ -100,9 +114,15 @@ python -m pytest
 
 ### 3. Launch Retro 90s Windows 95 Workbench UI
 ```bash
+# Live deployment is available at https://datarace-liard.vercel.app
 cd ui
 npm install
 npm run dev
+```
+
+### 4. Docker Environment
+```bash
+docker compose up --build
 ```
 
 ---
@@ -141,6 +161,17 @@ where $o_{i,k} \in \{\text{BEGIN}, \text{READ}(x), \text{WRITE}(x), \text{LOCK}(
 | **08** | `08_job_queue_double_claim` | Task Queue | Double Claim | 6 ops | 1.7ms |
 | **09** | `09_rate_limiter_bypass` | Security | Limit Overdraft | 6 ops | 2.0ms |
 | **10** | `10_auction_bid_snooping` | Realtime | Stale Bid Overwrite | 4 ops | 3.1ms |
+
+---
+
+## 🛠️ Automated Remediation Guidelines
+
+| Anomaly Pattern | Root Cause | Recommended Fix |
+|---|---|---|
+| **Lost Update ($G0$)** | Unlocked read followed by computed write | Use `SELECT ... FOR UPDATE` or atomic `UPDATE account SET balance = balance - :amount WHERE balance >= :amount` |
+| **Write Skew ($G2$)** | Cross-row invariant verification without locking read set | Promote transaction to `SERIALIZABLE` or lock rows with shared/exclusive locks |
+| **Double Booking / Allocation** | Unconstrained `SELECT` before `INSERT` | Use database uniqueness constraints or advisory locks |
+| **Deadlock Cycle** | Inconsistent resource acquisition ordering | Enforce global lock ordering (e.g., sort account IDs before locking) |
 
 ---
 
