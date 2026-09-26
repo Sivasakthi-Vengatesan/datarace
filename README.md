@@ -100,6 +100,9 @@ sequenceDiagram
 
 ### 1. Run Python Concurrency Benchmark Suite
 ```bash
+# Install Python dependencies
+pip install -r requirements.txt
+
 # Run all 10 canonical concurrency benchmarks
 python cli/main.py benchmark
 
