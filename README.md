@@ -199,5 +199,12 @@ datarace/
 
 ---
 
+## 🤝 Contributing
+
+Contributions, issues, and pull requests are warmly welcomed! Check out [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+
+---
+
 ## 📜 License
-MIT License.
+
+Distributed under the [MIT License](LICENSE).
